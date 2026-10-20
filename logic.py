@@ -2,9 +2,15 @@
 logic.py
 - 금융사기 취약도 진단을 위한 설문 문항 및 응답 처리 로직
 - 위험도 산출 및 맞춤 교육 콘텐츠 추천 로직
-- [7단계] 사례 기반 퀴즈 데이터 및 채점 로직
+- 사례 기반 퀴즈 데이터 및 채점 로직
+- 최신 금융사기 주의보 데이터
+- [신규] 생성형 AI(OpenAI) 기반 실시간 피싱 분석 함수
 """
 
+import streamlit as st
+from openai import OpenAI
+
+# 1. 7가지 필수 설문 항목
 SURVEY_QUESTIONS = [
     {
         "id": "age_group",
@@ -50,7 +56,7 @@ SURVEY_QUESTIONS = [
     }
 ]
 
-# 7단계: 사례 기반 퀴즈 문항 데이터
+# 2. 사례 기반 퀴즈 문항 데이터
 QUIZ_QUESTIONS = [
     {
         "id": "q1",
@@ -93,6 +99,20 @@ QUIZ_QUESTIONS = [
         ],
         "answer_idx": 2,
         "explanation": "검찰, 경찰, 금융감독원 등 국가기관은 절대로 전화로 '안전계좌 이체'나 현금 인출/전달을 요구하지 않습니다."
+    }
+]
+
+# 3. 최신 금융사기 주의보 데이터
+LATEST_NEWS = [
+    {
+        "tag": "🚨 금융감독원 주의보",
+        "title": "모바일 부고장·청첩장 사칭 스미싱 기승",
+        "desc": "부고나 결혼식 초대를 사칭한 문자 내 링크(URL) 클릭 시 악성 앱이 설치되어 휴대폰 소액결제 및 신분증 유출 피해가 발생하고 있습니다."
+    },
+    {
+        "tag": "📢 금감원 핵심 안내",
+        "title": "AI 딥보이스(목소리 합성) 자녀 사칭 주의",
+        "desc": "실제 자녀의 목소리와 똑같이 음성을 합성하여 급전을 요구하더라도, 반드시 기존에 저장된 자녀 번호로 다시 전화해 본인 확인을 해야 합니다."
     }
 ]
 
@@ -189,7 +209,6 @@ def get_educational_contents(risk_results: dict) -> list:
     return contents
 
 def evaluate_quiz(user_selections: dict) -> dict:
-    """[7단계] 사용자 퀴즈 응답 채점 및 해설 생성"""
     correct_count = 0
     details = []
 
@@ -212,3 +231,35 @@ def evaluate_quiz(user_selections: dict) -> dict:
         "total_count": len(QUIZ_QUESTIONS),
         "details": details
     }
+
+def ask_ai_coach(user_message: str) -> str:
+    """
+    [생성형 AI 연동] 의심 문자/전화 내용을 GPT 모델로 분석
+    """
+    try:
+        if "OPENAI_API_KEY" not in st.secrets:
+            return "⚠️ OpenAI API 키가 설정되지 않았습니다. (.streamlit/secrets.toml 파일을 확인해 주세요)"
+
+        client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+        
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "당신은 금융소비자를 보호하는 '금융사기 예방 전문 AI 안전코치'입니다. "
+                        "사용자가 입력한 의심스러운 문자나 전화 내용을 분석하여 답변하세요:\n"
+                        "1. 🚨 위험도 판정 (위험 / 주의 / 안전)\n"
+                        "2. 🔍 주요 의심 사유 (2~3문장으로 간결하게 설명)\n"
+                        "3. 🛡️ 지금 당장 취해야 할 행동 수칙 (2가지 안내)\n"
+                        "쉬운 한국어와 다정한 말투를 사용하세요."
+                    )
+                },
+                {"role": "user", "content": user_message}
+            ],
+            temperature=0.3
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        return f"⚠️ AI 분석 중 에러가 발생했습니다: {str(e)}"
