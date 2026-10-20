@@ -285,6 +285,20 @@ with tab2:
 
         st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
 
+        # 🔗 [복구 완료] 가족 공유 카드 및 서비스 링크 복사 버튼
+        st.markdown("""
+            <div class="toss-card" style="background-color: #F2F4F6; border: none; text-align: center;">
+                <div style="font-size: 14px; font-weight: 700; color: #191F28; margin-bottom: 4px;">
+                    👨‍👩‍👧‍👦 소중한 가족에게 이 안전 지식을 알려주세요
+                </div>
+                <div style="font-size: 12px; color: #4E5968; margin-bottom: 8px;">
+                    부모님이나 지인에게 금융사기 예방 가이드를 전달할 수 있습니다.
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+
+        components.html(COPY_BUTTON_HTML, height=65)
+
         if st.button("← 다시 진단하기", key="tab2_reset_btn"):
             if "diagnosis_id" in st.session_state:
                 del st.session_state["diagnosis_id"]
@@ -347,7 +361,7 @@ with tab3:
         if diag_id:
             update_quiz_score(diag_id, evaluation["score"])
 
-        # 퀴즈 점수 출력 카드 (파란 배경 + 흰색 글자 강제 스타일 적용)
+        # 퀴즈 점수 출력 카드
         st.markdown(f"""
             <div class="toss-card" style="text-align: center; background-color: #1E4FA1 !important; border: none;">
                 <div style="font-size: 14px; color: #E8EEF9 !important; font-weight: 600;">나의 금융안전 퀴즈 점수</div>
